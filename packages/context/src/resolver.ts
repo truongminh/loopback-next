@@ -4,7 +4,7 @@
 // License text available at https://opensource.org/licenses/MIT
 
 import {Context} from './context';
-import {BoundValue, ValueOrPromise} from './binding';
+import {Binding, BoundValue, ValueOrPromise} from './binding';
 import {isPromise} from './is-promise';
 import {
   describeInjectedArguments,
@@ -29,16 +29,18 @@ export type Constructor<T> =
  *
  * @param ctor The class constructor to call.
  * @param ctx The context containing values for `@inject` resolution
+ * @param binding The optional binding of the class if bound
  * @param nonInjectedArgs Optional array of args for non-injected parameters
  */
 export function instantiateClass<T>(
   ctor: Constructor<T>,
   ctx: Context,
+  binding?: Binding,
   // tslint:disable-next-line:no-any
   nonInjectedArgs?: any[],
 ): T | Promise<T> {
-  const argsOrPromise = resolveInjectedArguments(ctor, ctx, '');
-  const propertiesOrPromise = resolveInjectedProperties(ctor, ctx);
+  const argsOrPromise = resolveInjectedArguments(ctor, ctx, '', binding);
+  const propertiesOrPromise = resolveInjectedProperties(ctor, ctx, binding);
   let inst: T | Promise<T>;
   if (isPromise(argsOrPromise)) {
     // Instantiate the class asynchronously
@@ -95,6 +97,7 @@ function resolve<T>(ctx: Context, injection: Injection): ValueOrPromise<T> {
  * @param ctx The context containing values for `@inject` resolution
  * @param method The method name. If set to '', the constructor will
  * be used.
+ * @param binding The optional binding of the class if bound
  * @param nonInjectedArgs Optional array of args for non-injected parameters
  */
 export function resolveInjectedArguments(
@@ -102,6 +105,7 @@ export function resolveInjectedArguments(
   target: any,
   ctx: Context,
   method: string,
+  binding?: Binding,
   // tslint:disable-next-line:no-any
   nonInjectedArgs?: any[],
 ): BoundValue[] | Promise<BoundValue[]> {
@@ -121,7 +125,7 @@ export function resolveInjectedArguments(
 
   let nonInjectedIndex = 0;
   for (let ix = 0; ix < argLength; ix++) {
-    const injection = ix < injectedArgs.length ? injectedArgs[ix] : undefined;
+    let injection = ix < injectedArgs.length ? injectedArgs[ix] : undefined;
     if (injection == null || (!injection.bindingKey && !injection.resolve)) {
       const name = method || target.name;
       if (nonInjectedIndex < nonInjectedArgs.length) {
@@ -136,6 +140,8 @@ export function resolveInjectedArguments(
         );
       }
     }
+    // Copy the injection so that we can set the parent binding
+    injection = Object.assign({binding}, injection);
 
     const valueOrPromise = resolve(ctx, injection);
     if (isPromise(valueOrPromise)) {
@@ -175,6 +181,7 @@ export function invokeMethod(
     target,
     ctx,
     method,
+    undefined,
     nonInjectedArgs,
   );
   assert(typeof target[method] === 'function', `Method ${method} not found`);
@@ -189,9 +196,22 @@ export function invokeMethod(
 
 export type KV = {[p: string]: BoundValue};
 
+/**
+ * Given a class with properties decorated with `@inject`,
+ * return the map of properties resolved using the values
+ * bound in `ctx`.
+
+ * The function returns an argument array when all dependencies were
+ * resolved synchronously, or a Promise otherwise.
+ *
+ * @param fn The function for which the arguments should be resolved.
+ * @param ctx The context containing values for `@inject` resolution
+ * @param binding The optional binding of the class if bound
+ */
 export function resolveInjectedProperties(
   fn: Function,
   ctx: Context,
+  binding?: Binding,
 ): KV | Promise<KV> {
   const injectedProperties = describeInjectedProperties(fn.prototype);
 
@@ -202,13 +222,15 @@ export function resolveInjectedProperties(
     (properties[p] = v);
 
   for (const p in injectedProperties) {
-    const injection = injectedProperties[p];
+    let injection = injectedProperties[p];
     if (!injection.bindingKey && !injection.resolve) {
       throw new Error(
         `Cannot resolve injected property for class ${fn.name}: ` +
           `The property ${p} was not decorated for dependency injection.`,
       );
     }
+    // Copy the injection so that we can set the parent binding
+    injection = Object.assign({binding}, injection);
     const valueOrPromise = resolve(ctx, injection);
     if (isPromise(valueOrPromise)) {
       if (!asyncResolvers) asyncResolvers = [];
