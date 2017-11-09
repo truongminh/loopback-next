@@ -143,6 +143,8 @@ export namespace inject {
     bindingKey: string,
     metadata?: Object,
   ) {
+    metadata = metadata || {};
+    metadata = Object.assign(metadata, {getter: true});
     return inject(bindingKey, metadata, resolveAsGetter);
   };
 
@@ -163,6 +165,8 @@ export namespace inject {
     bindingKey: string,
     metadata?: Object,
   ) {
+    metadata = metadata || {};
+    metadata = Object.assign(metadata, {setter: true});
     return inject(bindingKey, metadata, resolveAsSetter);
   };
 }
