@@ -29,7 +29,7 @@ module.exports = class ArtifactGenerator extends BaseGenerator {
     this.artifactInfo.defaultName = 'new';
     this.conflicter = new StatusConflicter(
       this.env.adapter,
-      this.options.force
+      this.options.force,
     );
   }
 
@@ -40,25 +40,8 @@ module.exports = class ArtifactGenerator extends BaseGenerator {
    */
   checkLoopBackProject() {
     if (this.shouldExit()) return false;
-    const pkg = this.fs.readJSON(this.destinationPath('package.json'));
-    const key = 'loopback';
-    if (!pkg) {
-      const err = new Error(
-        'No package.json found in ' +
-          this.destinationRoot() +
-          '. ' +
-          'The command must be run in a LoopBack project.'
-      );
-      this.exit(err);
-      return;
-    }
-    if (!pkg.keywords || !pkg.keywords.includes(key)) {
-      const err = new Error(
-        'No `loopback` keyword found in ' +
-          this.destinationPath('package.json') +
-          '. ' +
-          'The command must be run in a LoopBack project.'
-      );
+    if (this.config.get('lbVersion') !== 4) {
+      const err = new Error('The command must be run in a LoopBack 4 project.');
       this.exit(err);
     }
   }
@@ -76,7 +59,7 @@ module.exports = class ArtifactGenerator extends BaseGenerator {
       },
     ];
 
-    return this.prompt(prompts).then(props => {
+    return this.prompt(prompts).then((props) => {
       Object.assign(this.artifactInfo, props);
     });
   }
@@ -93,7 +76,7 @@ module.exports = class ArtifactGenerator extends BaseGenerator {
       this.destinationPath(),
       this.artifactInfo,
       {},
-      {globOptions: {dot: true}}
+      {globOptions: {dot: true}},
     );
   }
 };
