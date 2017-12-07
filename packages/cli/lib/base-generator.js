@@ -5,6 +5,9 @@
 
 'use strict';
 const Generator = require('yeoman-generator');
+const Storage = require('yeoman-generator/lib/util/storage');
+const path = require('path');
+const utils = require('./utils');
 const chalk = require('chalk');
 
 /**
@@ -15,6 +18,14 @@ module.exports = class BaseGenerator extends Generator {
   constructor(args, opts) {
     super(args, opts);
     this._setupGenerator();
+  }
+
+  /**
+   * Override getStorage to store config in custom .loopback file
+   */
+  _getStorage() {
+    const storePath = path.join(this.destinationRoot(), '.loopback');
+    return new Storage('loopback', this.fs, storePath);
   }
 
   /**
