@@ -12,6 +12,7 @@ import {
 import {Binding, BoundValue, ValueOrPromise} from './binding';
 import {Context} from './context';
 import {isPromise} from './is-promise';
+import {ResolutionSession} from './resolver';
 
 const PARAMETERS_KEY = 'inject:parameters';
 const PROPERTIES_KEY = 'inject:properties';
@@ -20,7 +21,11 @@ const PROPERTIES_KEY = 'inject:properties';
  * A function to provide resolution of injected values
  */
 export interface ResolverFunction {
-  (ctx: Context, injection: Injection): ValueOrPromise<BoundValue>;
+  (
+    ctx: Context,
+    injection: Injection,
+    session?: ResolutionSession,
+  ): ValueOrPromise<BoundValue>;
 }
 
 /**
@@ -30,7 +35,6 @@ export interface Injection {
   bindingKey: string; // Binding key
   metadata?: {[attribute: string]: BoundValue}; // Related metadata
   resolve?: ResolverFunction; // A custom resolve function
-  binding?: Binding; // The optional binding for the target class
 }
 
 /**
@@ -206,19 +210,25 @@ export namespace inject {
 }
 
 function resolveAsGetter(ctx: Context, injection: Injection) {
+  // No resolution session should be propagated into the getter
   return function getter() {
     return ctx.get(injection.bindingKey);
   };
 }
 
 function resolveAsSetter(ctx: Context, injection: Injection) {
+  // No resolution session should be propagated into the setter
   return function setter(value: BoundValue) {
     ctx.bind(injection.bindingKey).to(value);
   };
 }
 
-function resolveAsOptions(ctx: Context, injection: Injection) {
-  if (!injection.binding) {
+function resolveAsOptions(
+  ctx: Context,
+  injection: Injection,
+  session?: ResolutionSession,
+) {
+  if (!(session && session.binding)) {
     // The injection does not happen within a binding. For example,
     // instantiateClass(cls, ctx) is used.
     return undefined;
@@ -231,7 +241,7 @@ function resolveAsOptions(ctx: Context, injection: Injection) {
   }
   path = path.replace(/#/g, '.');
 
-  let boundValue = injection.binding.options;
+  let boundValue = session.binding.options;
   if (isPromise(boundValue)) {
     return boundValue.then(v => Binding.getDeepProperty(v, path));
   }
