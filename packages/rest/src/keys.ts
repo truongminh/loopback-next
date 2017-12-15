@@ -11,6 +11,7 @@ export namespace RestBindings {
   export const HOST = 'rest.host';
   export const PORT = 'rest.port';
   export const HANDLER = 'rest.handler';
+  export const MODEL_PATH = 'rest.modelPath';
 
   export const API_SPEC = 'rest.apiSpec';
   export const SEQUENCE = 'rest.sequence';

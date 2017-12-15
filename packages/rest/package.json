@@ -16,8 +16,8 @@
     "prepare": "npm run build && npm run build:apidocs",
     "pretest": "npm run build:current",
     "integration": "lb-dist mocha --opts ../../test/mocha.opts 'DIST/test/integration/**/*.js'",
-    "test": "lb-dist mocha --opts ../../test/mocha.opts 'DIST/test/unit/**/*.js' 'DIST/test/integration/**/*.js' 'DIST/test/acceptance/**/*.js'",
-    "unit": "lb-dist mocha --opts ../../test/mocha.opts 'DIST/test/unit/**/*.js'",
+    "test": "lb-dist mocha --opts ../../test/mocha.opts --timeout 5000 'DIST/test/unit/**/*.js' 'DIST/test/integration/**/*.js' 'DIST/test/acceptance/**/*.js'",
+    "unit": "lb-dist mocha --opts ../../test/mocha.opts --timeout 5000 'DIST/test/unit/**/*.js'",
     "verify": "npm pack && tar xf loopback-rest*.tgz && tree package && npm run clean"
   },
   "author": "IBM",
@@ -33,7 +33,9 @@
     "js-yaml": "^3.9.1",
     "lodash": "^4.17.4",
     "path-to-regexp": "^2.0.0",
-    "swagger2openapi": "^2.10.7"
+    "readdir-enhanced": "^2.1.0",
+    "swagger2openapi": "^2.10.7",
+    "typescript-json-schema": "^0.20.0"
   },
   "devDependencies": {
     "@loopback/build": "^4.0.0-alpha.7",

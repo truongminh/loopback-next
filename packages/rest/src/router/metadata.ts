@@ -365,6 +365,13 @@ export function param(paramSpec: ParameterObject) {
     const paramTypes = (methodSig && methodSig.parameterTypes) || [];
 
     const targetWithParamStyle = target as any;
+    // if a class is passed in instead of a schema
+    if (typeof paramSpec.schema === 'function') {
+      const schema = paramSpec.schema as Function;
+      paramSpec.schema = {
+        $ref: `#/definitions/${schema.name}`,
+      };
+    }
     if (typeof descriptorOrIndex === 'number') {
       if (targetWithParamStyle[paramDecoratorStyle] === 'method') {
         // This should not happen as parameter decorators are applied before

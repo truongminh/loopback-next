@@ -765,7 +765,7 @@ export interface ParameterObject extends SimpleType, Extensible {
    * _If in is "body":_
    * The schema defining the type used for the body parameter.
    */
-  schema?: SchemaObject;
+  schema?: SchemaObject | Function;
 }
 
 /**

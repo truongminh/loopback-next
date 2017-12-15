@@ -28,6 +28,7 @@ import {
 } from './internal-types';
 import {ControllerClass} from './router/routing-table';
 import {RestBindings} from './keys';
+import {addModelSchema, mPath} from './router/generate-schema';
 
 const SequenceActions = RestBindings.SequenceActions;
 
@@ -141,8 +142,12 @@ export class RestServer extends Context implements Server {
       // Set it to '' so that the http server will listen on all interfaces
       options.host = undefined;
     }
+    if (options.modelPath == null) {
+      options.modelPath = mPath;
+    }
     this.bind(RestBindings.PORT).to(options.port);
     this.bind(RestBindings.HOST).to(options.host);
+    this.bind(RestBindings.MODEL_PATH).to(options.modelPath);
     this.api(createEmptyApiSpec());
 
     this.sequence(options.sequence ? options.sequence : DefaultSequence);
@@ -227,7 +232,12 @@ export class RestServer extends Context implements Server {
     }
 
     // TODO(bajtos) should we support API spec defined asynchronously?
-    const spec: OpenApiSpec = this.getSync(RestBindings.API_SPEC);
+    let spec: OpenApiSpec = this.getSync(RestBindings.API_SPEC);
+
+    // generates API spec from TS models from a given path
+    const modelPath = this.getSync(RestBindings.MODEL_PATH);
+    addModelSchema(spec, modelPath);
+
     for (const path in spec.paths) {
       for (const verb in spec.paths[path]) {
         const routeSpec: OperationObject = spec.paths[path][verb];
@@ -590,4 +600,5 @@ export interface RestServerConfig {
   port?: number;
   apiExplorerUrl?: string;
   sequence?: Constructor<SequenceHandler>;
+  modelPath?: string;
 }

@@ -36,3 +36,4 @@ export * from './rest-application';
 export * from './rest-component';
 export * from './rest-server';
 export * from './sequence';
+export * from './router/generate-schema';
