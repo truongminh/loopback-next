@@ -5,12 +5,14 @@
 
 import {Context} from './context';
 import {Binding, BoundValue, ValueOrPromise} from './binding';
-import {isPromise} from './is-promise';
+import {isPromise} from './promise-helper';
 import {
   describeInjectedArguments,
   describeInjectedProperties,
   Injection,
 } from './inject';
+import {RejectionError} from './promise-helper';
+
 import * as assert from 'assert';
 
 /**
@@ -98,39 +100,25 @@ export function instantiateClass<T>(
   ctor: Constructor<T>,
   ctx: Context,
   session?: ResolutionSession,
-  // tslint:disable-next-line:no-any
-  nonInjectedArgs?: any[],
-): T | Promise<T> {
+  nonInjectedArgs?: BoundValue[],
+): T | Promise<T | RejectionError> {
   session = session || new ResolutionSession();
   const argsOrPromise = resolveInjectedArguments(ctor, '', ctx, session);
   const propertiesOrPromise = resolveInjectedProperties(ctor, ctx, session);
-  let inst: T | Promise<T>;
-  if (isPromise(argsOrPromise)) {
-    // Instantiate the class asynchronously
-    inst = argsOrPromise.then(args => new ctor(...args));
-  } else {
-    // Instantiate the class synchronously
-    inst = new ctor(...argsOrPromise);
-  }
-  if (isPromise(propertiesOrPromise)) {
-    return propertiesOrPromise.then(props => {
-      if (isPromise(inst)) {
-        // Inject the properties asynchronously
-        return inst.then(obj => Object.assign(obj, props));
-      } else {
-        // Inject the properties synchronously
-        return Object.assign(inst, props);
-      }
-    });
-  } else {
-    if (isPromise(inst)) {
-      // Inject the properties asynchronously
-      return inst.then(obj => Object.assign(obj, propertiesOrPromise));
-    } else {
-      // Inject the properties synchronously
-      return Object.assign(inst, propertiesOrPromise);
-    }
-  }
+
+  // Apply constructor arguments
+  let instOrPromise = RejectionError.then<BoundValue[], T>(
+    argsOrPromise,
+    args => new ctor(...args),
+  );
+  instOrPromise = RejectionError.then<T, T>(instOrPromise, inst =>
+    // Apply properties to the instance
+    RejectionError.then<KV, T>(
+      propertiesOrPromise,
+      props => <T>Object.assign(inst, props),
+    ),
+  );
+  return instOrPromise;
 }
 
 /**
@@ -174,8 +162,7 @@ export function resolveInjectedArguments(
   method: string,
   ctx: Context,
   session?: ResolutionSession,
-  // tslint:disable-next-line:no-any
-  nonInjectedArgs?: any[],
+  nonInjectedArgs?: BoundValue[],
 ): BoundValue[] | Promise<BoundValue[]> {
   if (method) {
     assert(typeof target[method] === 'function', `Method ${method} not found`);
@@ -189,9 +176,14 @@ export function resolveInjectedArguments(
 
   const argLength = method ? target[method].length : target.length;
   const args: BoundValue[] = new Array(argLength);
-  let asyncResolvers: Promise<void>[] | undefined = undefined;
+  let asyncResolvers: Promise<BoundValue | RejectionError>[] = [];
 
   let nonInjectedIndex = 0;
+
+  // A closure to set an argument by index
+  const argSetter = (i: number) => (val: BoundValue) =>
+    val instanceof RejectionError ? val : (args[i] = val);
+
   for (let ix = 0; ix < argLength; ix++) {
     let injection = ix < injectedArgs.length ? injectedArgs[ix] : undefined;
     if (injection == null || (!injection.bindingKey && !injection.resolve)) {
@@ -209,19 +201,20 @@ export function resolveInjectedArguments(
       }
     }
 
-    const valueOrPromise = resolve(ctx, injection, session);
+    const valueOrPromise = RejectionError.catch<BoundValue[]>(
+      resolve(ctx, injection, session),
+    );
     if (isPromise(valueOrPromise)) {
-      if (!asyncResolvers) asyncResolvers = [];
-      asyncResolvers.push(
-        valueOrPromise.then((v: BoundValue) => (args[ix] = v)),
-      );
+      asyncResolvers.push(valueOrPromise.then(argSetter(ix)));
     } else {
-      args[ix] = valueOrPromise as BoundValue;
+      args[ix] = valueOrPromise;
     }
   }
 
-  if (asyncResolvers) {
-    return Promise.all(asyncResolvers).then(() => args);
+  if (asyncResolvers.length) {
+    return Promise.all(asyncResolvers).then(
+      vals => vals.find(v => v instanceof RejectionError) || args,
+    );
   } else {
     return args;
   }
@@ -240,9 +233,8 @@ export function invokeMethod(
   target: any,
   method: string,
   ctx: Context,
-  // tslint:disable-next-line:no-any
-  nonInjectedArgs?: any[],
-): ValueOrPromise<BoundValue> {
+  nonInjectedArgs?: BoundValue[],
+): BoundValue | Promise<BoundValue | RejectionError> {
   const argsOrPromise = resolveInjectedArguments(
     target,
     method,
@@ -251,13 +243,9 @@ export function invokeMethod(
     nonInjectedArgs,
   );
   assert(typeof target[method] === 'function', `Method ${method} not found`);
-  if (isPromise(argsOrPromise)) {
-    // Invoke the target method asynchronously
-    return argsOrPromise.then(args => target[method](...args));
-  } else {
-    // Invoke the target method synchronously
-    return target[method](...argsOrPromise);
-  }
+  return RejectionError.then<BoundValue[], BoundValue>(argsOrPromise, args =>
+    target[method](...args),
+  );
 }
 
 export type KV = {[p: string]: BoundValue};
@@ -282,10 +270,10 @@ export function resolveInjectedProperties(
   const injectedProperties = describeInjectedProperties(constructor.prototype);
 
   const properties: KV = {};
-  let asyncResolvers: Promise<void>[] | undefined = undefined;
+  let asyncResolvers: Promise<BoundValue | RejectionError>[] = [];
 
   const propertyResolver = (p: string) => (v: BoundValue) =>
-    (properties[p] = v);
+    v instanceof RejectionError ? v : (properties[p] = v);
 
   for (const p in injectedProperties) {
     let injection = injectedProperties[p];
@@ -296,17 +284,20 @@ export function resolveInjectedProperties(
       );
     }
 
-    const valueOrPromise = resolve(ctx, injection, session);
+    const valueOrPromise = RejectionError.catch<KV>(
+      resolve(ctx, injection, session),
+    );
     if (isPromise(valueOrPromise)) {
-      if (!asyncResolvers) asyncResolvers = [];
       asyncResolvers.push(valueOrPromise.then(propertyResolver(p)));
     } else {
-      properties[p] = valueOrPromise as BoundValue;
+      properties[p] = valueOrPromise;
     }
   }
 
-  if (asyncResolvers) {
-    return Promise.all(asyncResolvers).then(() => properties);
+  if (asyncResolvers.length) {
+    return Promise.all(asyncResolvers).then(
+      vals => vals.find(v => v instanceof RejectionError) || properties,
+    );
   } else {
     return properties;
   }

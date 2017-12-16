@@ -4,8 +4,9 @@
 // License text available at https://opensource.org/licenses/MIT
 
 import {Context} from './context';
+import {RejectionError} from './promise-helper';
 import {Constructor, instantiateClass, ResolutionSession} from './resolver';
-import {isPromise} from './is-promise';
+import {isPromise} from './promise-helper';
 import {Provider} from './provider';
 
 // tslint:disable-next-line:no-any
@@ -96,6 +97,11 @@ export type BindingOptions =
   | {[name: string]: BoundValue}
   | Promise<{[name: string]: BoundValue}>;
 
+type GetValueFunction<T> = (
+  ctx?: Context,
+  session?: ResolutionSession,
+) => T | PromiseLike<T | RejectionError>;
+
 // FIXME(bajtos) The binding class should be parameterized by the value
 // type stored
 export class Binding {
@@ -160,10 +166,7 @@ export class Binding {
   public options: BindingOptions = {};
 
   private _cache: BoundValue;
-  private _getValue: (
-    ctx?: Context,
-    session?: ResolutionSession,
-  ) => BoundValue | Promise<BoundValue>;
+  private _getValue: GetValueFunction<BoundValue>;
 
   // For bindings bound via toClass, this property contains the constructor
   // function
@@ -260,21 +263,12 @@ export class Binding {
     }
     if (this._getValue) {
       const resolutionSession = ResolutionSession.enterBinding(this, session);
-      const result = this._getValue(ctx, resolutionSession);
-      if (isPromise(result)) {
-        if (result instanceof Promise) {
-          result.catch(err => {
-            resolutionSession.exit();
-            return Promise.reject(err);
-          });
-        }
-        result.then(val => {
-          resolutionSession.exit();
-          return val;
-        });
-      } else {
+      let result = RejectionError.catch(this._getValue(ctx, resolutionSession));
+      result = RejectionError.then<BoundValue, BoundValue>(result, val => {
         resolutionSession.exit();
-      }
+        return val;
+      });
+
       return this._cacheValue(ctx, result);
     }
     return Promise.reject(
@@ -405,11 +399,7 @@ export class Binding {
         ctx!,
         session,
       );
-      if (isPromise(providerOrPromise)) {
-        return providerOrPromise.then(p => p.value());
-      } else {
-        return providerOrPromise.value();
-      }
+      return RejectionError.then(providerOrPromise, val => val.value());
     };
     return this;
   }
@@ -423,7 +413,7 @@ export class Binding {
    */
   toClass<T>(ctor: Constructor<T>): this {
     this.type = BindingType.CLASS;
-    this._getValue = (ctx, session) => instantiateClass(ctor, ctx!, session);
+    this._getValue = (ctx, session) => instantiateClass<T>(ctor, ctx!, session);
     this.valueConstructor = ctor;
     return this;
   }

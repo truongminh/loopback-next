@@ -3,8 +3,9 @@
 // This file is licensed under the MIT License.
 // License text available at https://opensource.org/licenses/MIT
 
+import {RejectionError} from './promise-helper';
 import {Binding, BoundValue, ValueOrPromise} from './binding';
-import {isPromise} from './is-promise';
+import {isPromise} from './promise-helper';
 import {ResolutionSession} from './resolver';
 
 /**
@@ -144,12 +145,8 @@ export class Context {
    *   (deeply) nested property to retrieve.
    * @returns A promise of the bound value.
    */
-  get(key: string, session?: ResolutionSession): Promise<BoundValue> {
-    try {
-      return Promise.resolve(this.getValueOrPromise(key, session));
-    } catch (err) {
-      return Promise.reject(err);
-    }
+  async get(key: string, session?: ResolutionSession): Promise<BoundValue> {
+    return await RejectionError.reject(this.getValueOrPromise(key, session));
   }
 
   /**
@@ -244,7 +241,10 @@ export class Context {
     }
 
     if (isPromise(boundValue)) {
-      return boundValue.then(v => Binding.getDeepProperty(v, path));
+      return boundValue.then(
+        v =>
+          v instanceof RejectionError ? v : Binding.getDeepProperty(v, path),
+      );
     }
 
     return Binding.getDeepProperty(boundValue, path);

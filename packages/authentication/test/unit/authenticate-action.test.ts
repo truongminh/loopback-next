@@ -4,7 +4,7 @@
 // License text available at https://opensource.org/licenses/MIT
 
 import {expect} from '@loopback/testlab';
-import {Context, instantiateClass} from '@loopback/context';
+import {Context, instantiateClass, RejectionError} from '@loopback/context';
 import {ParsedRequest} from '@loopback/rest';
 import {
   AuthenticationProvider,
@@ -22,7 +22,9 @@ describe('AuthenticationProvider', () => {
       const context = new Context();
       const strategy = new MockStrategy();
       context.bind(AuthenticationBindings.STRATEGY).to(strategy);
-      const provider = await instantiateClass(AuthenticationProvider, context);
+      const provider = await RejectionError.reject(
+        instantiateClass(AuthenticationProvider, context),
+      );
       expect(await provider.getStrategy()).to.be.equal(strategy);
     });
   });

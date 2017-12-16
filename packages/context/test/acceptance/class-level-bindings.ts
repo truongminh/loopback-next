@@ -11,6 +11,7 @@ import {
   Getter,
   instantiateClass,
   Provider,
+  RejectionError,
 } from '../..';
 
 const INFO_CONTROLLER = 'controllers.info';
@@ -390,7 +391,7 @@ describe('Context bindings - Injecting dependencies of classes', () => {
       ) {}
     }
 
-    const store = await instantiateClass(Store, ctx);
+    const store = await RejectionError.reject(instantiateClass(Store, ctx));
     expect(store.option).to.be.undefined();
   });
 

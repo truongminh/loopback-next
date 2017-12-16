@@ -15,7 +15,7 @@ export {Context} from './context';
 export {Constructor} from './resolver';
 export {inject, Setter, Getter} from './inject';
 export {Provider} from './provider';
-export {isPromise} from './is-promise';
+export {isPromise} from './promise-helper';
 
 // internals for testing
 export {instantiateClass, invokeMethod} from './resolver';
@@ -24,5 +24,7 @@ export {
   describeInjectedProperties,
   Injection,
 } from './inject';
+
+export {RejectionError} from './promise-helper';
 
 export * from '@loopback/metadata';
