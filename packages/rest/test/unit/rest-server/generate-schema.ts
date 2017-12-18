@@ -1,17 +1,7 @@
-import {
-  convertToSchemaObject,
-  addModelSchema,
-  getFilePaths,
-  getSchemaNames,
-} from '../../../src/router/generate-schema';
+import {convertToSchemaObject} from '../../../src/router/generate-schema';
 import {expect} from '@loopback/testlab';
 import {Definition} from 'typescript-json-schema';
-import {
-  SchemaObject,
-  createEmptyApiSpec,
-  OpenApiSpec,
-} from '@loopback/openapi-spec';
-import {resolve} from 'path';
+import {SchemaObject} from '@loopback/openapi-spec';
 
 describe('convertToSchemaObject', () => {
   describe('valid', () => {
@@ -23,11 +13,9 @@ describe('convertToSchemaObject', () => {
     propertyConversionTest('type', typeDef, expectedType);
 
     const allOfDef: Definition = {
-      // type: 'object',
       allOf: [typeDef, typeDef],
     };
     const expectedAllOf: SchemaObject = {
-      // type: 'object',
       allOf: [expectedType, expectedType],
     };
     propertyConversionTest('allOf', allOfDef, expectedAllOf);

@@ -4,13 +4,8 @@ import {
   getSchemaNames,
   addModelSchema,
 } from '../../../src/router/generate-schema';
-import {
-  OpenApiSpec,
-  createEmptyApiSpec,
-  DefinitionsObject,
-} from '@loopback/openapi-spec';
+import {OpenApiSpec, createEmptyApiSpec} from '@loopback/openapi-spec';
 import {resolve} from 'path';
-import * as _ from 'lodash';
 
 const pathWithOutModels = resolve(
   'dist',

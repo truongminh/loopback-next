@@ -10,10 +10,9 @@ import {anOpenApiSpec, anOperationSpec} from '@loopback/openapi-spec-builder';
 import {createClientForHandler, Client} from '@loopback/testlab';
 import {Foo} from './models/foo.model';
 import {resolve} from 'path';
-import {inspect} from 'util';
 
 describe('Schema definition', () => {
-  it('is correctly referenced by controller spec', async () => {
+  it('is correctly built when a model constructor is given to @param.body', async () => {
     const testApp = givenAnApplication();
     const testServer = await givenAServer(testApp);
 
@@ -22,14 +21,6 @@ describe('Schema definition', () => {
       @param.body('name', Foo)
       greet(name: string) {}
     }
-    const path = resolve(
-      'dist',
-      'test',
-      'acceptance',
-      'schema',
-      'src',
-      'models',
-    );
     const spec = anOpenApiSpec()
       .withOperation(
         'post',

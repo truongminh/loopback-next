@@ -21,7 +21,7 @@ export const SequenceActions = RestBindings.SequenceActions;
  */
 export class RestApplication extends Application {
   constructor(config?: ApplicationConfig) {
-    const cfg = Object.assign({}, config);
+    const cfg: ApplicationConfig = Object.assign({}, config);
 
     // If the configuration provides an array of components, we want
     // to preserve that collection, but also ensure that it contains

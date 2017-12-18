@@ -5,3 +5,7 @@ export class Bar {
   bi: Foo;
   bo: Foo[];
 }
+
+export class Baz {
+  Ba: number;
+}

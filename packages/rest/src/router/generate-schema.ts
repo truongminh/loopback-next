@@ -6,6 +6,7 @@ import {existsSync} from 'fs';
 
 const readdirSync = require('readdir-enhanced').readdirSync;
 
+// converts TypeScript 'model' files into Swagger spec
 export function addModelSchema(
   spec: OpenApiSpec,
   modelPath: string,
@@ -30,6 +31,9 @@ export function addModelSchema(
     if (!spec.definitions) {
       spec.definitions = {};
     }
+    // for each models the files are named after (meaning one model per file),
+    // their Swagger definitions are added to the given spec from the
+    // parameters
     if (generator) {
       for (const name of schemaNames) {
         const schemaObject = generator.getSchemaForSymbol(name);
@@ -68,7 +72,7 @@ export function getSchemaNames(paths: string[]) {
     .value();
 }
 
-// converts TJS.Definition into Swagger's SchemaObjecty
+// converts TJS.Definition into Swagger's SchemaObject
 export function convertToSchemaObject(input: TJS.Definition): SchemaObject {
   const emptySchemaObj: SchemaObject = {};
   // tslint:disable-next-line:no-any
@@ -134,4 +138,4 @@ export function convertToSchemaObject(input: TJS.Definition): SchemaObject {
 }
 
 // Could be replaced by some config elements.
-export const mPath = resolve('dist', 'src', 'models');
+export const DEFAULT_MODEL_PATH = resolve('dist', 'src', 'models');
