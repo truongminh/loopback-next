@@ -240,14 +240,9 @@ export class Context {
       return boundValue;
     }
 
-    if (isPromise(boundValue)) {
-      return boundValue.then(
-        v =>
-          v instanceof RejectionError ? v : Binding.getDeepProperty(v, path),
-      );
-    }
-
-    return Binding.getDeepProperty(boundValue, path);
+    return RejectionError.then<BoundValue, BoundValue>(boundValue, v =>
+      Binding.getDeepProperty(v, path),
+    );
   }
 
   /**
