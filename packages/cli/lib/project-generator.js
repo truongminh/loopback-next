@@ -224,7 +224,7 @@ module.exports = class ProjectGenerator extends BaseGenerator {
   writeConfig() {
     return this.config.defaults({
       cliVersion: pkg.version,
-      lbVersion: 400, // 400 = 4.0.0
+      lbVersion: '4.0.0',
       type: this.projectInfo.projectType,
     });
   }
