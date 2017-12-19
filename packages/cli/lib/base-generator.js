@@ -21,14 +21,6 @@ module.exports = class BaseGenerator extends Generator {
   }
 
   /**
-   * Override getStorage to store config in custom .loopback file
-   */
-  _getStorage() {
-    const storePath = path.join(this.destinationRoot(), '.loopback');
-    return new Storage('loopback', this.fs, storePath);
-  }
-
-  /**
    * Subclasses can extend _setupGenerator() to set up the generator
    */
   _setupGenerator() {

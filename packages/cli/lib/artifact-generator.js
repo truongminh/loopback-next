@@ -40,7 +40,7 @@ module.exports = class ArtifactGenerator extends BaseGenerator {
    */
   checkLoopBackProject() {
     if (this.shouldExit()) return false;
-    if (this.config.get('lbVersion') !== 4) {
+    if (this.config.get('lbVersion') >= 400) {
       const err = new Error('The command must be run in a LoopBack 4 project.');
       this.exit(err);
     }

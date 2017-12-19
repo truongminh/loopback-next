@@ -210,7 +210,7 @@ module.exports = class ProjectGenerator extends BaseGenerator {
       this.fs.delete(this.destinationPath('test/mocha.opts'));
     }
 
-    this._writeDefaultConfig();
+    this.writeConfig();
   }
 
   install() {
@@ -218,10 +218,13 @@ module.exports = class ProjectGenerator extends BaseGenerator {
     this.npmInstall(null, {}, {cwd: this.destinationRoot()});
   }
 
-  _writeDefaultConfig() {
+  /**
+   * Write the default config for a generated project
+   */
+  writeConfig() {
     return this.config.defaults({
       cliVersion: pkg.version,
-      lbVersion: 4,
+      lbVersion: 400, // 400 = 4.0.0
       type: this.projectInfo.projectType,
     });
   }
