@@ -41,7 +41,7 @@ module.exports = class ArtifactGenerator extends BaseGenerator {
    */
   checkLoopBackProject() {
     if (this.shouldExit()) return false;
-    if (semver.gte(this.config.get('lbVersion'), '4.0.0')) {
+    if (semver.satisfies(this.config.get('lbVersion'), '< 4.0.0')) {
       const err = new Error('The command must be run in a LoopBack 4 project.');
       this.exit(err);
     }
