@@ -29,6 +29,8 @@
   },
   "dependencies": {
     "@loopback/context": "^4.0.0-alpha.23",
+    "@types/lodash": "^4.14.91",
+    "lodash": "^4.17.4",
     "loopback-datasource-juggler": "^3.9.2"
   },
   "files": [
